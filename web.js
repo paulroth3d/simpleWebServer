@@ -3,10 +3,15 @@
 //-- constants
 var DEFAULT_PORT = 8888;
 var PATH_AUTH = /^\/auth\//i;
+var PATH_REAUTH = /[&?]reauth=true/i;
 
 var STATUS_INTERNAL_SERVER_ERROR = 500;
+var STATUS_AUTHENTICATE = 401;
 var STATUS_NOT_FOUND = 404;
 var STATUS_SUCCESS = 200;
+
+var HEAD_AUTHENTICATE_KEY = 'WWW-Authenticate';
+var HEAD_AUTHENTICATE = 'Basic realm="Secure Area"';
 
 var HEADER_TEXT_PLAIN = {"Content-Type": "text/plain"};
 
@@ -19,9 +24,12 @@ var http = require("http"),
     
 //-- common functions
 function matchesLocation( uri, pattern ){
+	console.log( "matching[", uri, "] pattern[", pattern, "]" );
 	try {
 		var results = uri.match( pattern );
-		if( results.length == 1 ){
+		if( results == null ){
+			return( false );
+		} else if( results.length == 1 ){
 			return( true );
 		} else if( results.length > 1 ){
 			console.warn( "multiple matches multiple times" );
@@ -30,26 +38,67 @@ function matchesLocation( uri, pattern ){
 			return( false );
 		}
 	} catch( err ){
-		console.error( "unable to match uri[" + uri + "]" );
+		console.error( "unable to match uri[" + uri + "]:" + err );
 	}
 	
 	return( false );
+}
+
+function parseAuthentication( auth ){
+	if( !auth ){
+		throw( new Exception( "Auth was null" ));
+	}
+	
+	var authSplit = auth.split( /\s+/ );
+	var authBuf = new Buffer( authSplit[1], 'base64' );
+	var authPlain = authBuf.toString();
+	
+	console.log( "authPlain:" + authPlain );
+	
+	var creds = authPlain.split( /\s*:\s*/ );
+	
+	var results = {};
+	results.user = creds[0];
+	results.pass = creds[1];
+	
+	console.log( "creds:", results );
+	return( results );
 }
 
 //-- create server
 http.createServer(function(request, response) {
 
   var uri = url.parse(request.url).pathname
-    , filename = path.join(process.cwd(), uri);
+    , filename = path.join(process.cwd(), uri)
+    , reauth = url.parse(request.url,true).reauth;
     
   var auth = request.headers["authorization"];
-  console.log( "authorization header:", auth );
   
+  console.log( "request.uri:", request.url );
   console.log( "uri:", uri );
   console.log( "filename:", filename );
   
+  var shouldReauthenticate = matchesLocation( request.url, PATH_REAUTH );//reauth == true || reauth == "true";
+  
   if( matchesLocation( uri, PATH_AUTH )){
   	  console.log( "in authentication area" );
+  	  
+  	  if( !auth || shouldReauthenticate ){
+  	  	  console.log( "reauthenticating" );
+  	  	  response.statusCode = STATUS_AUTHENTICATE;
+  	  	  response.setHeader( HEAD_AUTHENTICATE_KEY, HEAD_AUTHENTICATE );
+  	  	  
+  	  	  response.end( "<HTML><BODY>Need Credentials</BODY></HTML>" );
+  	  	  return;
+  	  } else {
+  	  	  console.log( "authentication found" );
+  	  	  try {
+  	  	  	 var creds = parseAuthentication( auth );
+  	  	  } catch( err ){
+  	  	  	 console.log( "auth:" + auth );
+  	  	  	 console.error( "unable to parse authentiction:" + err );
+  	  	  }
+  	  }
   }
   
   var showFile = function( filename ){
@@ -92,9 +141,6 @@ http.createServer(function(request, response) {
     } else {
     	showFile( filename );
     }
-    
-
-    
   });
 }).listen(parseInt(port, 10));
 
