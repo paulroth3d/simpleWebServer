@@ -4,6 +4,12 @@
 var DEFAULT_PORT = 8888;
 var PATH_AUTH = /^\/auth\//i;
 
+var STATUS_INTERNAL_SERVER_ERROR = 500;
+var STATUS_NOT_FOUND = 404;
+var STATUS_SUCCESS = 200;
+
+var HEADER_TEXT_PLAIN = {"Content-Type": "text/plain"};
+
 //-- basic modules
 var http = require("http"),
     url = require("url"),
@@ -49,13 +55,13 @@ http.createServer(function(request, response) {
   var showFile = function( filename ){
   	fs.readFile(filename, "binary", function(err, file) {
       if(err) {        
-        response.writeHead(500, {"Content-Type": "text/plain"});
+        response.writeHead(STATUS_INTERNAL_SERVER_ERROR, HEADER_TEXT_PLAIN);
         response.write(err + "\n");
         response.end();
         return;
       }
 
-      response.writeHead(200);
+      response.writeHead(STATUS_SUCCESS);
       response.write(file, "binary");
       response.end();
     });
@@ -63,7 +69,7 @@ http.createServer(function(request, response) {
   
   path.exists(filename, function(exists) {
     if(!exists) {
-      response.writeHead(404, {"Content-Type": "text/plain"});
+      response.writeHead(STATUS_SUCCESS, HEADER_TEXT_PLAIN);
       response.write("404 Not Found\n");
       response.end();
       return;
@@ -74,7 +80,7 @@ http.createServer(function(request, response) {
       
       path.exists(filename, function(exists) {
 	    if(!exists) {
-	      response.writeHead(404, {"Content-Type": "text/plain"});
+	      response.writeHead(STATUS_SUCCESS, HEADER_TEXT_PLAIN);
 	      response.write("404 Not Found\n");
 	      response.end();
 	      return;
