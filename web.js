@@ -65,35 +65,52 @@ function parseAuthentication( auth ){
 	return( results );
 }
 
+function strToBoolean( str ){
+	if( !str ){
+		return( false );
+	} else {
+		return( str.toLowerCase() == "true" );
+	}
+}
+
+function forceAuthentication( response ){
+	console.log( "reauthenticating" );
+	response.statusCode = STATUS_AUTHENTICATE;
+	response.setHeader( HEAD_AUTHENTICATE_KEY, HEAD_AUTHENTICATE );
+	
+	response.end( "<HTML><BODY>Need Credentials</BODY></HTML>" );
+}
+
 //-- create server
 http.createServer(function(request, response) {
 
   var uri = url.parse(request.url).pathname
     , filename = path.join(process.cwd(), uri)
-    , reauth = url.parse(request.url,true).reauth;
+    , params = url.parse( request.url, true ).query;
     
   var auth = request.headers["authorization"];
   
   console.log( "request.uri:", request.url );
   console.log( "uri:", uri );
   console.log( "filename:", filename );
+  //console.log( "reauth:", reauth );
   
-  var shouldReauthenticate = matchesLocation( request.url, PATH_REAUTH );//reauth == true || reauth == "true";
+  //var shouldReauthenticate = matchesLocation( request.url, PATH_REAUTH );//reauth == true || reauth == "true";
+  var shouldReauthenticate = strToBoolean( params.reauth );
   
   if( matchesLocation( uri, PATH_AUTH )){
   	  console.log( "in authentication area" );
   	  
   	  if( !auth || shouldReauthenticate ){
-  	  	  console.log( "reauthenticating" );
-  	  	  response.statusCode = STATUS_AUTHENTICATE;
-  	  	  response.setHeader( HEAD_AUTHENTICATE_KEY, HEAD_AUTHENTICATE );
-  	  	  
-  	  	  response.end( "<HTML><BODY>Need Credentials</BODY></HTML>" );
+  	  	  forceAuthentication( response );
   	  	  return;
   	  } else {
   	  	  console.log( "authentication found" );
   	  	  try {
   	  	  	 var creds = parseAuthentication( auth );
+  	  	  	 //-- we don't really care what the creds are for now.
+  	  	  	 //if( creds.user == blah && creds.pass == blah ){
+  	  	  	 //} else { forceAuthentication( response ); return; }
   	  	  } catch( err ){
   	  	  	 console.log( "auth:" + auth );
   	  	  	 console.error( "unable to parse authentiction:" + err );
