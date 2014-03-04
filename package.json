@@ -1,0 +1,11 @@
+{
+  "name": "testBasicAuth",
+  "version": "0.0.1",
+  "description": "Test app for basic authentication",
+  "main": "web.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Paul Roth",
+  "license": "ISC"
+}
