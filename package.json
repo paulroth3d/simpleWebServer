@@ -6,6 +6,14 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:paulroth3d/simpleWebServer.git"
+  },
   "author": "Paul Roth",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "logfmt": "^0.21.0",
+    "express": "^3.4.8"
+  }
 }
